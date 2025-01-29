@@ -5,40 +5,6 @@
 // Utilize loops and iteration to navigate through data collections.
 // Implement error handling to manage potential code failures gracefully.
 
-// The provided course information.
-const CourseInfo = {
-  id: 451,
-  name: "Introduction to JavaScript",
-};
-
-// The provided assignment group.
-const AssignmentGroup = {
-  id: 12345,
-  name: "Fundamentals of JavaScript",
-  course_id: 451,
-  group_weight: 25,
-  assignments: [
-    {
-      id: 1,
-      name: "Declare a Variable",
-      due_at: "2023-01-25",
-      points_possible: 50,
-    },
-    {
-      id: 2,
-      name: "Write a Function",
-      due_at: "2023-02-27",
-      points_possible: 150,
-    },
-    {
-      id: 3,
-      name: "Code the World",
-      due_at: "3156-11-15",
-      points_possible: 500,
-    },
-  ],
-};
-
 // If an AssignmentGroup does not belong to its course (mismatching course_id), your program should throw an error, letting the user know that the input was invalid
 
 // function verifyCourseId(CourseInfo, AssignmentGroup) {
@@ -75,6 +41,59 @@ const AssignmentGroup = {
 //     const { id, name, due_at, points_possible } = assignment;
 //   }
 // }
+
+// If an assignment is not yet due, do not include it in the results or the average. Additionally, if the learner’s submission is late (submitted_at is past due_at), deduct 10 percent of the total points possible from their score for that assignment.
+// let totalGrade = 0;
+// let gradedAssignments = 0;
+// const currentDate = new Date();
+// if (due_at > currentDate) {
+//   console.log(`Skip assignment ${id} ${name} , it's not due yet.`);
+//   continue;
+// }
+
+// if(submitted_at) {
+//   const submittedDate = new Date(submitted_at);
+//   if (submittedDate > due_at){
+//     console.log(`Assigment ${id} was submitted late. Deducting 10% from total possible points.`);
+//   }
+//   points_earned -= points_possible * 0.9;
+// }
+console.log("======= Code Starts Here =======");
+console.log("======= Line 62 =======");
+
+// The provided course information.
+const CourseInfo = {
+  id: 451,
+  name: "Introduction to JavaScript",
+};
+
+// The provided assignment group.
+const AssignmentGroup = {
+  id: 12345,
+  name: "Fundamentals of JavaScript",
+  course_id: 451,
+  group_weight: 25,
+  assignments: [
+    {
+      id: 1,
+      name: "Declare a Variable",
+      due_at: "2023-01-25",
+      points_possible: 50,
+    },
+    {
+      id: 2,
+      name: "Write a Function",
+      due_at: "2023-02-27",
+      points_possible: 150,
+    },
+    {
+      id: 3,
+      name: "Code the World",
+      due_at: "3156-11-15",
+      points_possible: 500,
+    },
+  ],
+};
 
 // COMBINED FUNCTIONS?
 function processAssignments(CourseInfo, AssignmentGroup, assignments) {
@@ -121,10 +140,10 @@ function processAssignments(CourseInfo, AssignmentGroup, assignments) {
 
   // Validate assignment fields
   function ValidateAssignment(assignment) {
-    const { id, name, due_at, points_possible } = assignment;
+    const { id, name, due_at, points_possible, submitted_at } = assignment;
 
     if (typeof id !== "number") {
-      throw new Error(`Assignment ID is not a valid ${id}`);
+      throw new Error(`Assignment ID is not a valid number: ${id}`);
     }
 
     if (typeof name !== "string" || name.trim() === "") {
@@ -136,24 +155,78 @@ function processAssignments(CourseInfo, AssignmentGroup, assignments) {
         `Invalid points_possible for assignment ${id}: ${points_possible}`
       );
     }
+
+    if (due_at && isNaN(Date.parse(due_at))) {
+      throw new Error(
+        `Invalid due date format for assignment ${id}: ${due_at}`
+      );
+    }
+
+    if (submitted_at && isNaN(Date.parse(submitted_at))) {
+      throw new Error(
+        `Invalid submitted_at date format for assignment ${id}: ${submitted_at}`
+      );
+    }
   }
 
-  // Loop through assignments
+  // Loop through assignments, skipping those not yet due and handling late submissions
   function loopThroughAssignments() {
+    if (!Array.isArray(assignments) || assignments.length === 0) {
+      throw new Error("Assignments must be a non-empty array.");
+    }
+
+    let totalGrade = 0;
+    let gradedAssignments = 0;
+    const currentDate = new Date();
+
     for (const assignment of assignments) {
-      const { id, name, due_at, points_possible } = assignment;
+      const { id, name, due_at, points_possible, submitted_at } = assignment;
+      const dueDate = new Date(due_at);
+
+      // Skip assignments not yet due
+      if (dueDate > currentDate) {
+        console.log(
+          `Skipping assignment ${id} (${name}) as it is not yet due.`
+        );
+        continue;
+      }
+
       console.log(
         `ID: ${id}, Name: ${name}, Due Date: ${due_at}, Points Possible: ${points_possible}`
       );
 
       try {
+        // Validate assignment fields
         ValidateAssignment(assignment);
 
-        const points_earned = assignment.points_earned || 0;
-        calculateGrade(points_earned, points_possible);
+        let points_earned = assignment.points_earned || 0;
+
+        // Check for late submission
+        if (submitted_at) {
+          const submittedDate = new Date(submitted_at);
+          if (submittedDate > dueDate) {
+            console.log(
+              `Assignment ${id} was submitted late. Deducting 10% from total possible points.`
+            );
+            points_earned -= points_possible * 0.1;
+          }
+        }
+
+        // Calculate grade and track for average
+        const gradePercentage = calculateGrade(points_earned, points_possible);
+        totalGrade += gradePercentage;
+        gradedAssignments++;
       } catch (error) {
         console.error(`Error in assignment ${id}: ${error.message}`);
       }
+    }
+
+    // Calculate and log overall average grade
+    if (gradedAssignments > 0) {
+      const averageGrade = totalGrade / gradedAssignments;
+      console.log(`Overall Average Grade: ${averageGrade.toFixed(2)}%`);
+    } else {
+      console.log("No assignments were processed for grading.");
     }
   }
 
@@ -166,8 +239,6 @@ function processAssignments(CourseInfo, AssignmentGroup, assignments) {
   }
 }
 processAssignments(CourseInfo, AssignmentGroup, AssignmentGroup.assignments);
-
-// If an assignment is not yet due, do not include it in the results or the average. Additionally, if the learner’s submission is late (submitted_at is past due_at), deduct 10 percent of the total points possible from their score for that assignment.
 
 // The provided learner submission data.
 const LearnerSubmissions = [
@@ -213,13 +284,13 @@ const LearnerSubmissions = [
   },
 ];
 
-function getLearnerData(course, ag, submissions) {
-  // here, we would process this data to achieve the desired result.
-}
+// function getLearnerData(course, ag, submissions) {
+//   // here, we would process this data to achieve the desired result.
+// }
 
-const result = getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
+// const result = getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
 
-console.log(result);
+// console.log(result);
 
 //   const result = [
 //     {
